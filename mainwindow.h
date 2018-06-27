@@ -21,6 +21,7 @@ public:
 private slots:
     void arreter();
     void Tmp(bool f = 0);
+    void About();
 
 private:
     Ui::MainWindow *ui;
