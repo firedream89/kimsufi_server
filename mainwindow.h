@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QWebFrame>
 
 namespace Ui {
 class MainWindow;
@@ -16,6 +17,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void Demarrage();
+    void InitListServer();
 
 
 private slots:

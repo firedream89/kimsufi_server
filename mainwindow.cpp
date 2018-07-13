@@ -9,8 +9,10 @@
 #include <QFormLayout>
 #include <QLabel>
 #include <windows.h>
+#include <QFile>
+#include <QMessageBox>
 
-QString version =  "1.01";
+QString version =  "1.03";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -21,34 +23,15 @@ MainWindow::MainWindow(QWidget *parent) :
     demarrage = false;
     Beep(700,1000);
 
-    QString fen("Pushbullet");
-    HWND hWnds = FindWindow(NULL,fen.toStdWString().c_str());
-    if(hWnds != NULL)
-    {
-        SetForegroundWindow(hWnds);
-        QClipboard *pp = QApplication::clipboard();
-        pp->clear();
-        QEventLoop l;
-        QTimer t;
-        connect(&t,SIGNAL(timeout()),&l,SLOT(quit()));
-        t.start(2000);
-        l.exec();
-        QString test("Dispo Serveur Kimsufi Activé\nhttps://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->eServeur->text());
-        pp->setText(test);
-        qDebug() << pp->text();
-        keybd_event(VK_LCONTROL,0,0,0);
-        keybd_event('V',0,0,0);
-        keybd_event(VK_LCONTROL,0,KEYEVENTF_KEYUP,0);
-        keybd_event(VK_RETURN,0,0,0);
-        keybd_event(VK_RETURN,0,KEYEVENTF_KEYUP,0);
-    }
-
     connect(ui->bArreter,SIGNAL(clicked(bool)),this,SLOT(arreter()));
     connect(&tmp,SIGNAL(timeout()),&tmp,SLOT(stop()));
     connect(&tmp,SIGNAL(timeout()),this,SLOT(Tmp()));
     connect(ui->actionQuitter,SIGNAL(triggered(bool)),qApp,SLOT(quit()));
     connect(ui->actionA_Propos_de_Qt,SIGNAL(triggered(bool)),qApp,SLOT(aboutQt()));
     connect(ui->actionA_Propos,SIGNAL(triggered(bool)),this,SLOT(About()));
+
+    this->show();
+    InitListServer();
 }
 
 MainWindow::~MainWindow()
@@ -74,16 +57,54 @@ void MainWindow::About()
     fen->exec();
 }
 
+void MainWindow::InitListServer()
+{
+    QWebView *web = new QWebView;
+    QEventLoop loop;
+    QTimer timer;
+    connect(web,SIGNAL(loadFinished(bool)),&loop,SLOT(quit()));
+    connect(&timer,SIGNAL(timeout()),&loop,SLOT(quit()));
+
+    web->load(QUrl("https://www.kimsufi.com/fr/serveurs.xml"));
+    timer.start(30000);
+    loop.exec();
+
+    QFile fichier("web_Temp.txt");
+    fichier.resize(0);
+    fichier.open(QIODevice::WriteOnly);
+    QTextStream flux(&fichier);
+    flux << web->page()->mainFrame()->toHtml();
+    fichier.close();
+
+    if(!fichier.open(QIODevice::ReadOnly))
+        QMessageBox::information(this,"","Echec d'ouverture du fichier");
+
+    while(!flux.atEnd())
+    {
+        QString var = flux.readLine();
+        if(var.contains("zone-dedicated-availability") && var.split("\"").count() >= 7)
+        {
+            QString tmp = var.split("\"").at(7);
+            var = flux.readLine();
+            ui->cServeur->addItem(var.split(">").at(2).split("<").at(0),tmp);
+        }
+        else if(var.contains("</table>"))
+            break;
+    }
+    fichier.close();
+}
+
 void MainWindow::Demarrage()
 {
     QWebView *web = new QWebView;
     QEventLoop l;
-    QTime t;
     QTimer timer,timer2;
     QStringList v,server;
     QString final,var;
-    QClipboard *cp = QApplication::clipboard();
+
     bool europe(false),dispo(false);
+
+    qDebug() << "selected server :" << ui->cServeur->currentText() << "=" << ui->cServeur->itemData(ui->cServeur->currentIndex()).toString();
 
     connect(web,SIGNAL(loadFinished(bool)),&l,SLOT(quit()));
     connect(&timer,SIGNAL(timeout()),&l,SLOT(quit()));
@@ -95,13 +116,11 @@ void MainWindow::Demarrage()
     while(demarrage)
     {
         //Chargement de la page web et extraction des informations serveurs
-        web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->eServeur->text()));
+        web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
         l.exec();
-        cp->clear();
-        web->page()->triggerAction(QWebPage::SelectAll);
-        web->page()->triggerAction(QWebPage::Copy);
+
         var.clear();
-        var = cp->text();
+        var = web->page()->mainFrame()->toPlainText();
         server.clear();
         server = var.split("{");
         europe = false;
@@ -134,29 +153,7 @@ void MainWindow::Demarrage()
                     timer.start(10000);
 
                     //Ouverture de la page d'achat du serveur
-                    QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->eServeur->text()));
-
-                    //Envoie info via pushbullet
-                    QString fen("Pushbullet");
-                    HWND hWnds = FindWindow(NULL,fen.toStdWString().c_str());
-                    if(hWnds != NULL)
-                    {
-                        SetForegroundWindow(hWnds);
-                        QClipboard *pp = QApplication::clipboard();
-                        pp->clear();
-                        QEventLoop l;
-                        QTimer t;
-                        connect(&t,SIGNAL(timeout()),&l,SLOT(quit()));
-                        t.start(2000);
-                        l.exec();
-                        pp->setText(ui->listDispo->item(0)->text() + "\nhttps://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->eServeur->text() + "&quantity=1");
-                        qDebug() << pp->text();
-                        keybd_event(VK_LCONTROL,0,0,0);
-                        keybd_event('V',0,0,0);
-                        keybd_event(VK_LCONTROL,0,KEYEVENTF_KEYUP,0);
-                        keybd_event(VK_RETURN,0,0,0);
-                        keybd_event(VK_RETURN,0,KEYEVENTF_KEYUP,0);
-                    }
+                    QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
 
                     while(timer.isActive())//envoie d'un bip toute les secondes pdt 10 Sec
                     {
