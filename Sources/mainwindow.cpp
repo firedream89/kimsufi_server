@@ -12,7 +12,7 @@
 #include <QFile>
 #include <QMessageBox>
 
-QString version =  "1.03";
+QString version =  "1.02";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
