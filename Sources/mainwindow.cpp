@@ -23,9 +23,6 @@ MainWindow::MainWindow(QWidget *parent) :
     demarrage = false;
     Beep(700,1000);
 
-    tmp.setInterval(1000);
-    tmp.setSingleShot(false);
-
     connect(ui->bArreter,SIGNAL(clicked(bool)),this,SLOT(arreter()));
     connect(&tmp,SIGNAL(timeout()),this,SLOT(Tmp()));
     connect(ui->actionQuitter,SIGNAL(triggered(bool)),qApp,SLOT(quit()));
@@ -99,12 +96,12 @@ void MainWindow::InitListServer()
 
 void MainWindow::Demarrage()
 {
-    tmp.stop();
     timer.stop();
+    tmp.stop();
 
     QWebView *web = new QWebView;
     QEventLoop l;
-    QTimer timer2;
+    QTimer timer2,timer3;
     QStringList v,server;
     QString final,var;
 
@@ -113,72 +110,74 @@ void MainWindow::Demarrage()
     connect(web,SIGNAL(loadFinished(bool)),&l,SLOT(quit()));
     connect(&timer,SIGNAL(timeout()),&l,SLOT(quit()));
     connect(&timer2,SIGNAL(timeout()),&l,SLOT(quit()));
-    connect(ui->bArreter,SIGNAL(clicked(bool)),&timer,SLOT(stop()));
 
 
-        //Chargement de la page web et extraction des informations serveurs
-        web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
-        l.exec();
+    //Chargement de la page web et extraction des informations serveurs
+    web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
+    l.exec();
 
-        var.clear();
-        var = web->page()->mainFrame()->toPlainText();
-        server.clear();
-        server = var.split("{");
-        europe = false;
-        for(int cpt = 0;cpt<server.count();cpt++)
+    var.clear();
+    var = web->page()->mainFrame()->toPlainText();
+    server.clear();
+    server = var.split("{");
+    europe = false;
+    for(int cpt = 0;cpt<server.count();cpt++)
+    {
+        if(europe)//Lecture des serveurs disponible en europe
         {
-            if(europe)//Lecture des serveurs disponible en europe
+            //Lecture des informations de disponibilité
+            v.clear();
+            v = server.at(cpt).split("\"");
+            dispo = false;
+            final.clear();
+            for(int cpt2 = 0;cpt2<v.count();cpt2++)
             {
-                //Lecture des informations de disponibilité
-                v.clear();
-                v = server.at(cpt).split("\"");
-                dispo = false;
-                final.clear();
-                for(int cpt2 = 0;cpt2<v.count();cpt2++)
+                if(v.at(cpt2).contains("datacenter") && !dispo)
                 {
-                    if(v.at(cpt2).contains("datacenter") && !dispo)
-                    {
-                        final += QTime::currentTime().toString("hh:mm:ss ") + v.at(cpt2+2) + " ";
-                        dispo = true;
-                    }
-                    else if(v.at(cpt2).contains("availability") && dispo)
-                        final += v.at(cpt2+2);
+                    final += QTime::currentTime().toString("hh:mm:ss ") + v.at(cpt2+2) + " ";
+                    dispo = true;
                 }
-                if(final.split(" ").last() == "")
-                    final += v.at(3);
-
-                ui->dispo->setText(final);
-
-                if(final.split(" ").last() != "unavailable")//si un serveur est disponible
-                {
-                    //Ouverture de la page d'achat du serveur
-                    QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
-
-                    while(timer.isActive())//envoie d'un bip toute les secondes pdt 10 Sec
-                    {
-                        Beep(700,500);
-                        timer2.start(1000);
-                        qApp->processEvents();
-                        l.exec();
-                    }
-                    if(demarrage)
-                        arreter();
-                    return;
-                }
-                if(server.at(cpt).contains("]") || server.at(cpt).contains("default"))
-                    europe = false;
+                else if(v.at(cpt2).contains("availability") && dispo)
+                    final += v.at(cpt2+2);
             }
-            if(server.at(cpt).contains("europe"))//Recherche de la liste des serveurs européen
-                europe = true;
-        }
+            if(final.split(" ").last() == "")
+                final += v.at(3);
 
-        if(demarrage)
-        {
-            tmp.start();
-            timer.start(10000);
+            ui->dispo->setText(final);
+
+            if(final.split(" ").last() != "unavailable")//si un serveur est disponible
+            {
+                //Ouverture de la page d'achat du serveur
+                QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
+
+                timer3.start(10000);
+                while(timer3.isActive())//envoie d'un bip toute les secondes pdt 10 Sec
+                {
+                    Beep(700,500);
+                    timer2.start(1000);
+                    qApp->processEvents();
+                    l.exec();
+                }
+                if(demarrage)
+                    arreter();
+                return;
+            }
+            if(server.at(cpt).contains("]") || server.at(cpt).contains("default"))
+                europe = false;
         }
-        else
-            timer.stop();
+        if(server.at(cpt).contains("europe"))//Recherche de la liste des serveurs européen
+            europe = true;
+    }
+
+    if(demarrage)
+    {
+        timer.start(10000);
+
+        tmp.setInterval(500);
+        tmp.setSingleShot(false);
+        tmp.start();
+        qDebug() << tmp.isActive();
+    }
 }
 
 void MainWindow::arreter()
