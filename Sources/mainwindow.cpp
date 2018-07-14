@@ -12,7 +12,7 @@
 #include <QFile>
 #include <QMessageBox>
 
-QString version =  "1.02";
+QString version =  "1.03";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -23,12 +23,15 @@ MainWindow::MainWindow(QWidget *parent) :
     demarrage = false;
     Beep(700,1000);
 
+    tmp.setInterval(1000);
+    tmp.setSingleShot(false);
+
     connect(ui->bArreter,SIGNAL(clicked(bool)),this,SLOT(arreter()));
-    connect(&tmp,SIGNAL(timeout()),&tmp,SLOT(stop()));
     connect(&tmp,SIGNAL(timeout()),this,SLOT(Tmp()));
     connect(ui->actionQuitter,SIGNAL(triggered(bool)),qApp,SLOT(quit()));
     connect(ui->actionA_Propos_de_Qt,SIGNAL(triggered(bool)),qApp,SLOT(aboutQt()));
     connect(ui->actionA_Propos,SIGNAL(triggered(bool)),this,SLOT(About()));
+    connect(&timer,SIGNAL(timeout()),this,SLOT(Demarrage()));
 
     this->show();
     InitListServer();
@@ -96,25 +99,23 @@ void MainWindow::InitListServer()
 
 void MainWindow::Demarrage()
 {
+    tmp.stop();
+    timer.stop();
+
     QWebView *web = new QWebView;
     QEventLoop l;
-    QTimer timer,timer2;
+    QTimer timer2;
     QStringList v,server;
     QString final,var;
 
     bool europe(false),dispo(false);
 
-    qDebug() << "selected server :" << ui->cServeur->currentText() << "=" << ui->cServeur->itemData(ui->cServeur->currentIndex()).toString();
-
     connect(web,SIGNAL(loadFinished(bool)),&l,SLOT(quit()));
     connect(&timer,SIGNAL(timeout()),&l,SLOT(quit()));
-    connect(&timer,SIGNAL(timeout()),&timer,SLOT(stop()));
     connect(&timer2,SIGNAL(timeout()),&l,SLOT(quit()));
     connect(ui->bArreter,SIGNAL(clicked(bool)),&timer,SLOT(stop()));
 
-    ui->listDispo->setAlternatingRowColors(true);
-    while(demarrage)
-    {
+
         //Chargement de la page web et extraction des informations serveurs
         web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
         l.exec();
@@ -146,12 +147,10 @@ void MainWindow::Demarrage()
                 if(final.split(" ").last() == "")
                     final += v.at(3);
 
-                ui->listDispo->insertItem(0,final);
+                ui->dispo->setText(final);
 
                 if(final.split(" ").last() != "unavailable")//si un serveur est disponible
                 {
-                    timer.start(10000);
-
                     //Ouverture de la page d'achat du serveur
                     QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
 
@@ -172,8 +171,14 @@ void MainWindow::Demarrage()
             if(server.at(cpt).contains("europe"))//Recherche de la liste des serveurs européen
                 europe = true;
         }
-        Tmp(true);
-    }
+
+        if(demarrage)
+        {
+            tmp.start();
+            timer.start(10000);
+        }
+        else
+            timer.stop();
 }
 
 void MainWindow::arreter()
@@ -191,13 +196,8 @@ void MainWindow::arreter()
     }
 }
 
-void MainWindow::Tmp(bool f)
+void MainWindow::Tmp()
 {
-    if(f)
-        tmp.start(10000);
-    while(tmp.isActive())
-    {
-        qApp->processEvents();
-        ui->lcdNumber->display(tmp.remainingTime()/1000);
-    }
+    qApp->processEvents();
+    ui->lcdNumber->display(timer.remainingTime()/1000);
 }

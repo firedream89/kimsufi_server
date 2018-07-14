@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>369</height>
+    <height>97</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,8 +15,18 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="2" column="0" colspan="4">
-     <widget class="QListWidget" name="listDispo"/>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="bArreter">
+      <property name="text">
+       <string>Démarrer</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QComboBox" name="cServeur"/>
+    </item>
+    <item row="0" column="2">
+     <widget class="QLCDNumber" name="lcdNumber"/>
     </item>
     <item row="0" column="3">
      <spacer name="horizontalSpacer">
@@ -31,18 +41,23 @@
       </property>
      </spacer>
     </item>
-    <item row="0" column="2">
-     <widget class="QLCDNumber" name="lcdNumber"/>
-    </item>
-    <item row="0" column="0">
-     <widget class="QPushButton" name="bArreter">
-      <property name="text">
-       <string>Démarrer</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QComboBox" name="cServeur"/>
+    <item row="1" column="0" colspan="4">
+     <layout class="QFormLayout" name="formLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Dernier scan :</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="dispo">
+        <property name="text">
+         <string>Aucun</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -65,15 +80,6 @@
    </widget>
    <addaction name="menuMenu"/>
   </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
-  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionA_Propos">
    <property name="text">
     <string>A Propos</string>

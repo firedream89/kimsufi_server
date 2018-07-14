@@ -15,20 +15,20 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
-    void Demarrage();
+    ~MainWindow();  
     void InitListServer();
 
 
 private slots:
     void arreter();
-    void Tmp(bool f = 0);
+    void Tmp();
     void About();
+    void Demarrage();
 
 private:
     Ui::MainWindow *ui;
     bool demarrage;
-    QTimer tmp;
+    QTimer tmp,timer;
 };
 
 #endif // MAINWINDOW_H
