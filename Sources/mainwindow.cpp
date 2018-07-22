@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    qDebug() << qApp->libraryPaths();
     ui->setupUi(this);
     this->setWindowTitle("Dispo Serveur Kimsufi");
     demarrage = false;
