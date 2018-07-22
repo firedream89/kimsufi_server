@@ -4,6 +4,17 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QWebFrame>
+#include <QWebView>
+#include <QClipboard>
+#include <QTime>
+#include <QDesktopServices>
+#include <QDebug>
+#include <QDialog>
+#include <QFormLayout>
+#include <QLabel>
+#include <windows.h>
+#include <QFile>
+#include <QMessageBox>
 
 namespace Ui {
 class MainWindow;
@@ -24,11 +35,13 @@ private slots:
     void Tmp();
     void About();
     void Demarrage();
+    void LoadPage();
 
 private:
     Ui::MainWindow *ui;
     bool demarrage;
     QTimer tmp,timer;
+    QWebView *web;
 };
 
 #endif // MAINWINDOW_H

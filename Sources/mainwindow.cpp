@@ -1,18 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QWebView>
-#include <QClipboard>
-#include <QTime>
-#include <QDesktopServices>
-#include <QDebug>
-#include <QDialog>
-#include <QFormLayout>
-#include <QLabel>
-#include <windows.h>
-#include <QFile>
-#include <QMessageBox>
 
-QString version =  "1.03";
+
+QString version =  "1.05";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -23,12 +13,17 @@ MainWindow::MainWindow(QWidget *parent) :
     demarrage = false;
     Beep(700,1000);
 
+    web = new QWebView;
+    connect(web,SIGNAL(loadFinished(bool)),this,SLOT(Demarrage()));
+
     connect(ui->bArreter,SIGNAL(clicked(bool)),this,SLOT(arreter()));
     connect(&tmp,SIGNAL(timeout()),this,SLOT(Tmp()));
     connect(ui->actionQuitter,SIGNAL(triggered(bool)),qApp,SLOT(quit()));
     connect(ui->actionA_Propos_de_Qt,SIGNAL(triggered(bool)),qApp,SLOT(aboutQt()));
     connect(ui->actionA_Propos,SIGNAL(triggered(bool)),this,SLOT(About()));
-    connect(&timer,SIGNAL(timeout()),this,SLOT(Demarrage()));
+    connect(&timer,SIGNAL(timeout()),&timer,SLOT(stop()));
+    connect(&timer,SIGNAL(timeout()),this,SLOT(LoadPage()));
+
 
     this->show();
     InitListServer();
@@ -51,7 +46,7 @@ void MainWindow::About()
     layout->addRow("Auteur",&auteur);
     layout->addRow("Licence",&licence);
     layout->addRow("Sources",&github);
-    QDialog *fen = new QDialog;
+    QDialog *fen = new QDialog(this);
     fen->setLayout(layout);
     fen->setWindowTitle("A Propos de " + this->windowTitle());
     fen->exec();
@@ -94,27 +89,20 @@ void MainWindow::InitListServer()
     fichier.close();
 }
 
+void MainWindow::LoadPage()
+{
+    //Chargement de la page web
+    web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
+}
+
 void MainWindow::Demarrage()
 {
-    timer.stop();
     tmp.stop();
 
-    QWebView *web = new QWebView;
-    QEventLoop l;
-    QTimer timer2,timer3;
     QStringList v,server;
     QString final,var;
 
     bool europe(false),dispo(false);
-
-    connect(web,SIGNAL(loadFinished(bool)),&l,SLOT(quit()));
-    connect(&timer,SIGNAL(timeout()),&l,SLOT(quit()));
-    connect(&timer2,SIGNAL(timeout()),&l,SLOT(quit()));
-
-
-    //Chargement de la page web et extraction des informations serveurs
-    web->load(QUrl("https://www.ovh.com/engine/api/dedicated/server/availabilities?country=fr?&hardware=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
-    l.exec();
 
     var.clear();
     var = web->page()->mainFrame()->toPlainText();
@@ -150,14 +138,8 @@ void MainWindow::Demarrage()
                 //Ouverture de la page d'achat du serveur
                 QDesktopServices::openUrl(QUrl("https://www.kimsufi.com/fr/commande/kimsufi.xml?reference=" + ui->cServeur->itemData(ui->cServeur->currentIndex()).toString()));
 
-                timer3.start(10000);
-                while(timer3.isActive())//envoie d'un bip toute les secondes pdt 10 Sec
-                {
-                    Beep(700,500);
-                    timer2.start(1000);
-                    qApp->processEvents();
-                    l.exec();
-                }
+                Beep(700,1000);
+
                 if(demarrage)
                     arreter();
                 return;
@@ -168,15 +150,12 @@ void MainWindow::Demarrage()
         if(server.at(cpt).contains("europe"))//Recherche de la liste des serveurs européen
             europe = true;
     }
-
     if(demarrage)
     {
-        timer.start(10000);
-
         tmp.setInterval(500);
         tmp.setSingleShot(false);
         tmp.start();
-        qDebug() << tmp.isActive();
+        timer.start(10000);
     }
 }
 
@@ -191,12 +170,11 @@ void MainWindow::arreter()
     {
         ui->bArreter->setText("Arreter");
         demarrage = true;
-        Demarrage();
+        LoadPage();
     }
 }
 
 void MainWindow::Tmp()
 {
-    qApp->processEvents();
     ui->lcdNumber->display(timer.remainingTime()/1000);
 }
