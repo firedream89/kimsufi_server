@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 
 
-QString version =  "1.05";
+QString version =  "1.06";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -102,6 +102,7 @@ void MainWindow::Demarrage()
 
     QStringList v,server;
     QString final,var;
+    web->page()->deleteLater();
 
     bool europe(false),dispo(false);
 
@@ -151,6 +152,8 @@ void MainWindow::Demarrage()
         if(server.at(cpt).contains("europe"))//Recherche de la liste des serveurs européen
             europe = true;
     }
+    if(final.isEmpty())
+        ui->dispo->setText("Aucune connexion !");
     if(demarrage)
     {
         tmp.setInterval(500);
